@@ -41,7 +41,8 @@ app.get("/getFiles", async (req, res) => {
   res.json(imgSrcs);
 });
 //DB에 이미지 삽입
-app.post("/upload", async (req, res) => {
+app.post("/upload/:userid", async (req, res) => {
+  const { userid } = req.params;
   let uploadFile = req.files.img;
   const fileName = req.files.img.name;
   const name = Date.now() + "." + fileName;
@@ -51,11 +52,13 @@ app.post("/upload", async (req, res) => {
     }
 
     const imgSrc = `http://localhost:3002/files/${name}`;
+    console.log(imgSrc);
     await pool.query(
       `
-      INSERT INTO img_table SET imgSrc = ?;
+      UPDATE insta SET imgSrc = ? 
+      WHERE userid = ?
       `,
-      [imgSrc]
+      [imgSrc, userid]
     );
     // insta 테이블의 imgSrc 항목에 넣으려면 id ,pw, phone 등필요.
     // 따로 이미지 테이블만 만든다고 가정하면 관리가 가능한가?
