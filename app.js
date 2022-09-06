@@ -52,7 +52,7 @@ app.post("/upload/:userid", async (req, res) => {
     }
 
     const imgSrc = `http://localhost:3002/files/${name}`;
-    console.log(imgSrc);
+
     await pool.query(
       `
       UPDATE insta SET imgSrc = ? 
@@ -60,11 +60,8 @@ app.post("/upload/:userid", async (req, res) => {
       `,
       [imgSrc, userid]
     );
-    // insta 테이블의 imgSrc 항목에 넣으려면 id ,pw, phone 등필요.
-    // 따로 이미지 테이블만 만든다고 가정하면 관리가 가능한가?
-    // img_table의 id에 insta테이블의 userid를 넣으면 어떨까
 
-    res.send("등록됨");
+    res.send(imgSrc);
   });
 });
 //이름순조회
