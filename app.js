@@ -31,12 +31,23 @@ app.get("/users", async (req, res) => {
   const [users] = await pool.query(`SELECT * FROM users order by id desc`);
   res.json(users);
 });
-//이미지 조회
+//이미지 전체 조회
 app.get("/getFiles", async (req, res) => {
   const [imgSrcs] = await pool.query(
     `
     SELECT * FROM img_table;
     `
+  );
+  res.json(imgSrcs);
+});
+//이미지 아이디 조회
+app.post("/getFiles/:userid", async (req, res) => {
+  const { userid } = req.params;
+  const [imgSrcs] = await pool.query(
+    `
+    SELECT * FROM img_table where userid = ?;
+    `,
+    [userid]
   );
   res.json(imgSrcs);
 });
@@ -55,7 +66,32 @@ app.post("/upload/:userid", async (req, res) => {
 
     await pool.query(
       `
-      UPDATE insta SET imgSrc = ? 
+      insert into img_table set
+      imgSrc = ?,
+      userid = ?
+      `,
+      [imgSrc, userid]
+    );
+
+    res.send(imgSrc);
+  });
+});
+// 프로필사진 저장
+app.post("/profileImage/:userid", async (req, res) => {
+  const { userid } = req.params;
+  let uploadFile = req.files.img;
+  const fileName = req.files.img.name;
+  const name = Date.now() + "." + fileName;
+  uploadFile.mv(`${__dirname}/public/files/${name}`, async (err) => {
+    if (err) {
+      return res.status(500).send(err);
+    }
+
+    const imgSrc = `http://localhost:3002/files/${name}`;
+
+    await pool.query(
+      `
+      UPDATE insta SET imgSrc = ?
       WHERE userid = ?
       `,
       [imgSrc, userid]
