@@ -26,79 +26,12 @@ const pool = mysql.createPool({
   connectionLimit: 10,
   queueLimit: 0,
 });
+
+// ===================== users ================
 //전체조회
 app.get("/users", async (req, res) => {
   const [users] = await pool.query(`SELECT * FROM users order by id desc`);
   res.json(users);
-});
-//이미지 전체 조회
-app.get("/getFiles", async (req, res) => {
-  const [imgSrcs] = await pool.query(
-    `
-    SELECT * FROM img_table;
-    `
-  );
-  res.json(imgSrcs);
-});
-//이미지 아이디 조회
-app.post("/getFiles/:userid", async (req, res) => {
-  const { userid } = req.params;
-  const [imgSrcs] = await pool.query(
-    `
-    SELECT * FROM img_table where userid = ?;
-    `,
-    [userid]
-  );
-  res.json(imgSrcs);
-});
-//DB에 이미지 삽입
-app.post("/upload/:userid", async (req, res) => {
-  const { userid } = req.params;
-  let uploadFile = req.files.img;
-  const fileName = req.files.img.name;
-  const name = Date.now() + "." + fileName;
-  uploadFile.mv(`${__dirname}/public/files/${name}`, async (err) => {
-    if (err) {
-      return res.status(500).send(err);
-    }
-
-    const imgSrc = `http://localhost:3002/files/${name}`;
-
-    await pool.query(
-      `
-      insert into img_table set
-      imgSrc = ?,
-      userid = ?
-      `,
-      [imgSrc, userid]
-    );
-
-    res.send(imgSrc);
-  });
-});
-// 프로필사진 저장
-app.post("/profileImage/:userid", async (req, res) => {
-  const { userid } = req.params;
-  let uploadFile = req.files.img;
-  const fileName = req.files.img.name;
-  const name = Date.now() + "." + fileName;
-  uploadFile.mv(`${__dirname}/public/files/${name}`, async (err) => {
-    if (err) {
-      return res.status(500).send(err);
-    }
-
-    const imgSrc = `http://localhost:3002/files/${name}`;
-
-    await pool.query(
-      `
-      UPDATE insta SET imgSrc = ?
-      WHERE userid = ?
-      `,
-      [imgSrc, userid]
-    );
-
-    res.send(imgSrc);
-  });
 });
 //이름순조회
 app.get("/usersName", async (req, res) => {
@@ -297,6 +230,8 @@ app.get("/usersSearch/:name", async (req, res) => {
 
   res.json(users);
 });
+
+// ========================= insta ====================
 //insta 유저 가입
 app.post("/joinMember", async (req, res) => {
   const { username, phone, userid, password } = req.body;
@@ -339,6 +274,31 @@ app.post("/joinMember", async (req, res) => {
     msg: "가입이 완료되었습니다.",
   });
 });
+//insta 유저 조회
+app.post("/getMember/:userid", async (req, res) => {
+  const { userid } = req.params;
+  const [[userRow]] = await pool.query(
+    `
+  select * from insta where userid = ?`,
+    [userid]
+  );
+
+  if (!userid) {
+    res.status(404).json({
+      msg: "userid required",
+    });
+    return;
+  }
+
+  if (!userRow) {
+    res.status(400).json({
+      msg: "일치하는 회원이 없습니다.",
+    });
+    return;
+  }
+
+  res.json(userRow);
+});
 //insta 유저 로그인
 app.post("/loginMember", async (req, res) => {
   const { userid, password } = req.body;
@@ -373,7 +333,82 @@ app.post("/loginMember", async (req, res) => {
     });
   }
 });
-//
+//이미지 전체 조회
+app.get("/getFiles", async (req, res) => {
+  const [imgSrcs] = await pool.query(
+    `
+    SELECT * FROM img_table;
+    `
+  );
+  res.json(imgSrcs);
+});
+//이미지 아이디 조회
+app.post("/getFiles/:userid", async (req, res) => {
+  const { userid } = req.params;
+  const [imgSrcs] = await pool.query(
+    `
+    SELECT * FROM img_table where userid = ?;
+    `,
+    [userid]
+  );
+  res.json(imgSrcs);
+});
+//DB에 이미지 삽입
+app.post("/upload/:userid", async (req, res) => {
+  const { userid } = req.params;
+  let uploadFile = req.files.img;
+  const fileName = req.files.img.name;
+  const name = Date.now() + "." + fileName;
+  uploadFile.mv(`${__dirname}/public/files/${name}`, async (err) => {
+    if (err) {
+      return res.status(500).send(err);
+    }
+
+    const imgSrc = `http://localhost:3002/files/${name}`;
+
+    await pool.query(
+      `
+      insert into img_table set
+      imgSrc = ?,
+      userid = ?
+      `,
+      [imgSrc, userid]
+    );
+
+    await pool.query(
+      `
+    UPDATE insta SET article = article+1 WHERE userid = ?;
+    `,
+      [userid]
+    );
+
+    res.send(imgSrc);
+  });
+});
+// 프로필사진 저장
+app.post("/profileImage/:userid", async (req, res) => {
+  const { userid } = req.params;
+  let uploadFile = req.files.img;
+  const fileName = req.files.img.name;
+  const name = Date.now() + "." + fileName;
+  uploadFile.mv(`${__dirname}/public/files/${name}`, async (err) => {
+    if (err) {
+      return res.status(500).send(err);
+    }
+
+    const imgSrc = `http://localhost:3002/files/${name}`;
+
+    await pool.query(
+      `
+      UPDATE insta SET imgSrc = ?
+      WHERE userid = ?
+      `,
+      [imgSrc, userid]
+    );
+
+    res.send(imgSrc);
+  });
+});
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
 });
