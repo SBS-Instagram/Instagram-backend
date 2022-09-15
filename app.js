@@ -409,6 +409,28 @@ app.post("/profileImage/:userid", async (req, res) => {
     res.send(imgSrc);
   });
 });
+//인스타 유저정보 확인
+app.get("/instaSearch/:searchValue", async (req, res) => {
+  const { searchValue } = req.params;
+  const [searched] = await pool.query(`
+  select * from insta where userid like "%${searchValue}%" or username like "%${searchValue}%";
+  `);
+
+  if (!searchValue) {
+    res.status(404).json({
+      msg: "search Required",
+    });
+    return;
+  }
+  if (!searched.length) {
+    res.status(400).json({
+      msg: "검색 결과 없음.",
+    });
+    return;
+  }
+
+  res.json(searched);
+});
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
 });
