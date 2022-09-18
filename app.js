@@ -409,28 +409,167 @@ app.post("/profileImage/:userid", async (req, res) => {
     res.send(imgSrc);
   });
 });
-//인스타 유저정보 확인
+// 인스타 유저 이름/id 검색
 app.get("/instaSearch/:searchValue", async (req, res) => {
   const { searchValue } = req.params;
-  const [searched] = await pool.query(`
-  select * from insta where userid like "%${searchValue}%" or username like "%${searchValue}%";
-  `);
-
   if (!searchValue) {
     res.status(404).json({
-      msg: "search Required",
-    });
-    return;
-  }
-  if (!searched.length) {
-    res.status(400).json({
-      msg: "검색 결과 없음.",
+      msg: "searchValue required",
     });
     return;
   }
 
-  res.json(searched);
+  const [searchList] = await pool.query(
+    `
+  select * from insta where userid like "%${searchValue}%" or username like "%${searchValue}%"`
+  );
+  // SELECT * FROM insta WHERE userid LIKE '%윤%' OR username LIKE '%윤%';
+  if (searchList.length === 0) {
+    res.status(400).json({
+      msg: "일치하는 회원이 없습니다.",
+    });
+    return;
+  }
+
+  res.json(searchList);
 });
+// 인스타 follow
+app.get("/instaFollow", async (req, res) => {
+  const { reqId, resId } = req.query;
+
+  if (!reqId) {
+    res.status(404).json({
+      msg: "request id required",
+    });
+    return;
+  }
+  if (!resId) {
+    res.status(404).json({
+      msg: "resend id required",
+    });
+    return;
+  }
+  const [isFollowed] = await pool.query(
+    `
+  SELECT * FROM follow_table WHERE
+   followId = ? 
+   AND followedId = ?
+  `,
+    [reqId, resId]
+  );
+
+  if (isFollowed == "") {
+    await pool.query(
+      `
+  update insta
+  set followNum = followNum + 1
+  where userid = ?
+  `,
+      [reqId]
+    );
+
+    await pool.query(
+      `
+  update insta
+  set followerNum = followerNum + 1
+  where userid = ?
+  `,
+      [resId]
+    );
+
+    await pool.query(
+      `
+  insert into follow_table set
+  followId = ?,
+  followedId = ?
+ 
+  `,
+      [reqId, resId]
+    );
+
+    res.json({ msg: "팔로우 성공" });
+  } else {
+    await pool.query(
+      `
+  update insta
+  set followNum = followNum - 1
+  where userid = ?
+  `,
+      [reqId]
+    );
+
+    await pool.query(
+      `
+  update insta
+  set followerNum = followerNum - 1
+  where userid = ?
+  `,
+      [resId]
+    );
+
+    await pool.query(
+      `
+      DELETE FROM follow_table
+       WHERE followId = ? AND 
+       followedId = ?
+  
+  `,
+      [reqId, resId]
+    );
+
+    res.json({ msg: "팔로우 취소" });
+  }
+});
+
+// 인스타 삭제
+app.delete("/delete", async (req, res) => {
+  const { id, userid } = req.query;
+
+  const [userRow] = await pool.query(
+    `
+    select *
+    from img_table
+    where id = ?
+    `,
+    [id]
+  );
+
+  if (userRow == undefined) {
+    res.status(404).json({
+      msg: "not found",
+    });
+    return;
+  }
+
+  await pool.query(
+    `
+    delete 
+    from img_table
+    where id = ?
+    `,
+    [id]
+  );
+
+  await pool.query(
+    `
+    update insta
+    set article = article - 1
+    where userid = ?
+    `,
+    [userid]
+  );
+  const [updatedUsers] = await pool.query(
+    `
+    select *
+    from img_table
+    order by id asc
+    `,
+    [id]
+  );
+
+  res.json(updatedUsers);
+});
+
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
 });
