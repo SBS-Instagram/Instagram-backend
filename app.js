@@ -443,12 +443,14 @@ app.get("/instaFollow", async (req, res) => {
     });
     return;
   }
+
   if (!resId) {
     res.status(404).json({
       msg: "resend id required",
     });
     return;
   }
+
   const [isFollowed] = await pool.query(
     `
   SELECT * FROM follow_table WHERE
@@ -457,6 +459,9 @@ app.get("/instaFollow", async (req, res) => {
   `,
     [reqId, resId]
   );
+
+  // 이미 팔로우를 했으면 팔로우취소 및 팔로우 팔로워 -1씩.
+  // 그게 아니라면 팔로우신청 및 팔로우 팔로워 +1씩.
 
   if (isFollowed == "") {
     await pool.query(
