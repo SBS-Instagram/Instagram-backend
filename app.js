@@ -409,29 +409,27 @@ app.post("/profileImage/:userid", async (req, res) => {
     res.send(imgSrc);
   });
 });
-// 인스타 유저 이름/id 검색
+//인스타 유저정보 확인
 app.get("/instaSearch/:searchValue", async (req, res) => {
   const { searchValue } = req.params;
+  const [searched] = await pool.query(`
+  select * from insta where userid like "%${searchValue}%" or username like "%${searchValue}%";
+  `);
+
   if (!searchValue) {
     res.status(404).json({
-      msg: "searchValue required",
+      msg: "search Required",
     });
     return;
   }
-
-  const [searchList] = await pool.query(
-    `
-  select * from insta where userid like "%${searchValue}%" or username like "%${searchValue}%"`
-  );
-  // SELECT * FROM insta WHERE userid LIKE '%윤%' OR username LIKE '%윤%';
-  if (searchList.length === 0) {
+  if (!searched.length) {
     res.status(400).json({
-      msg: "일치하는 회원이 없습니다.",
+      msg: "검색 결과 없음.",
     });
     return;
   }
 
-  res.json(searchList);
+  res.json(searched);
 });
 // 인스타 follow
 app.get("/instaFollow", async (req, res) => {
@@ -525,7 +523,39 @@ app.get("/instaFollow", async (req, res) => {
     res.json({ msg: "팔로우 취소" });
   }
 });
+//인스타 follow 체크
+app.get("/isFollowed", async (req, res) => {
+  const { reqId, resId } = req.query;
 
+  if (!reqId) {
+    res.status(404).json({
+      msg: "request id required",
+    });
+    return;
+  }
+
+  if (!resId) {
+    res.status(404).json({
+      msg: "resend id required",
+    });
+    return;
+  }
+
+  const [[isFollowed]] = await pool.query(
+    `
+  SELECT * FROM follow_table WHERE
+   followId = ? 
+   AND followedId = ?
+  `,
+    [reqId, resId]
+  );
+
+  if (isFollowed != undefined) {
+    res.json(true);
+  } else {
+    res.json(false);
+  }
+});
 // 인스타 삭제
 app.delete("/delete", async (req, res) => {
   const { id, userid } = req.query;
@@ -574,7 +604,6 @@ app.delete("/delete", async (req, res) => {
 
   res.json(updatedUsers);
 });
-
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
 });
