@@ -356,9 +356,11 @@ app.post("/getFiles/:userid", async (req, res) => {
 //DB에 이미지 삽입
 app.post("/upload/:userid", async (req, res) => {
   const { userid } = req.params;
+  const { text } = req.body;
   let uploadFile = req.files.img;
   const fileName = req.files.img.name;
   const name = Date.now() + "." + fileName;
+
   uploadFile.mv(`${__dirname}/public/files/${name}`, async (err) => {
     if (err) {
       return res.status(500).send(err);
@@ -370,9 +372,10 @@ app.post("/upload/:userid", async (req, res) => {
       `
       insert into img_table set
       imgSrc = ?,
-      userid = ?
+      userid = ?,
+      body = ?
       `,
-      [imgSrc, userid]
+      [imgSrc, userid, text]
     );
 
     await pool.query(
