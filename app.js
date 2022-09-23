@@ -389,6 +389,20 @@ app.post("/upload/:userid", async (req, res) => {
     res.send(imgSrc);
   });
 });
+//DB 이미지 조회
+app.get("/getImage/:id", async (req, res) => {
+  const { id } = req.params;
+
+  const [image] = await pool.query(
+    `
+    select * from img_table 
+    where id = ?
+    `,
+    [id]
+  );
+
+  res.json(image);
+});
 // 프로필사진 저장
 app.post("/profileImage/:userid", async (req, res) => {
   const { userid } = req.params;
