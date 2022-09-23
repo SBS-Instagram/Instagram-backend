@@ -373,7 +373,8 @@ app.post("/upload/:userid", async (req, res) => {
       insert into img_table set
       imgSrc = ?,
       userid = ?,
-      body = ?
+      body = ?,
+      regDate = now()
       `,
       [imgSrc, userid, text]
     );
@@ -606,6 +607,67 @@ app.delete("/delete", async (req, res) => {
   );
 
   res.json(updatedUsers);
+});
+// 인스타 좋아요
+app.post("/like", async (req, res) => {
+  const { id, userid, imgSrc } = req.query;
+
+  const [isLiked] = await pool.query(
+    `
+  SELECT * FROM like_table WHERE
+   id = ? 
+   AND likeid = ?
+  `,
+    [id, userid]
+  );
+
+  if (isLiked == "") {
+    await pool.query(
+      `
+      insert into like_table set
+      id = ?,
+      likeid = ?,
+      imgSrc = ?,
+      liked = 1
+      `,
+      [id, userid, imgSrc]
+    );
+
+    await pool.query(
+      `
+      update img_table set
+      imgLike = imgLike + 1
+      where id = ?
+      `,
+      [id]
+    );
+
+    res.json({
+      msg: "좋아요 성공",
+    });
+  } else {
+    await pool.query(
+      `
+      update img_table set
+      imgLike = imgLike - 1
+      where id = ?
+      `,
+      [id]
+    );
+
+    await pool.query(
+      `
+      DELETE FROM like_table
+       WHERE id = ? AND 
+       likeid = ?
+      `,
+      [id, userid]
+    );
+
+    res.json({
+      msg: "좋아요 취소",
+    });
+  }
 });
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
