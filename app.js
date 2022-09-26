@@ -393,7 +393,7 @@ app.post("/upload/:userid", async (req, res) => {
 app.get("/getImage/:id", async (req, res) => {
   const { id } = req.params;
 
-  const [image] = await pool.query(
+  const [[image]] = await pool.query(
     `
     select * from img_table 
     where id = ?
@@ -681,6 +681,39 @@ app.post("/like", async (req, res) => {
     res.json({
       msg: "좋아요 취소",
     });
+  }
+});
+//인스타 좋아요 체크
+app.get("/isLiked", async (req, res) => {
+  const { userid, id } = req.query;
+
+  if (!userid) {
+    res.status(404).json({
+      msg: "로그인이 필요한 기능입니다.",
+    });
+    return;
+  }
+
+  if (!id) {
+    res.status(404).json({
+      msg: "article id required",
+    });
+    return;
+  }
+
+  const [[isLiked]] = await pool.query(
+    `
+  SELECT * FROM like_table WHERE
+   likeid = ? 
+   AND id = ?
+  `,
+    [userid, id]
+  );
+
+  if (isLiked != undefined) {
+    res.json(true);
+  } else {
+    res.json(false);
   }
 });
 app.listen(port, () => {
