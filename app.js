@@ -507,8 +507,17 @@ app.get("/instaFollow", async (req, res) => {
   `,
       [reqId, resId]
     );
-
-    res.json({ msg: "팔로우 성공" });
+    const [[followed]] = await pool.query(
+      `
+      select * from follow_table
+      where followId = ? and
+      followedId = ?
+      `,
+      [reqId, resId]
+    );
+    if (followed != undefined) {
+      res.json(true);
+    }
   } else {
     await pool.query(
       `
@@ -537,8 +546,17 @@ app.get("/instaFollow", async (req, res) => {
   `,
       [reqId, resId]
     );
-
-    res.json({ msg: "팔로우 취소" });
+    const [[followed]] = await pool.query(
+      `
+      select * from follow_table
+      where followId = ? and
+      followedId = ?
+      `,
+      [reqId, resId]
+    );
+    if (followed == undefined) {
+      res.json(false);
+    }
   }
 });
 //인스타 follow 체크
@@ -568,10 +586,10 @@ app.get("/isFollowed", async (req, res) => {
     [reqId, resId]
   );
 
-  if (isFollowed != undefined) {
-    res.json(true);
-  } else {
+  if (isFollowed === undefined) {
     res.json(false);
+  } else {
+    res.json(true);
   }
 });
 // 인스타 삭제
@@ -756,7 +774,7 @@ app.get("/getUser/:id", async (req, res) => {
   res.json(user);
 });
 //인스타 댓글추가
-app.post("/instaReply/:id", async (req, res) => {
+app.post("/instaReply", async (req, res) => {
   const { id, userid } = req.query;
   const { reply } = req.body;
 
@@ -767,17 +785,60 @@ app.post("/instaReply/:id", async (req, res) => {
     return;
   }
 
+  const [[user]] = await pool.query(
+    `
+    select * from insta where userid = ?
+    `,
+    [userid]
+  );
+
   await pool.query(
     `
     insert into reply_table set
     articleid = ?,
     replyid = ?,
-    reply = ?
+    reply = ?,
+    
+    replyusername = ?,
+    replyuserImgSrc = ?
     `,
-    [id, userid, reply]
+    [id, userid, reply, user.username, user.imgSrc]
   );
 
-  res.json("답변이 생성되었습니다.");
+  await pool.query(
+    `
+    update img_table set imgReply = imgReply + 1 where id = ?
+    `,
+    [id]
+  );
+
+  const [replies] = await pool.query(
+    `
+    select * from reply_table where articleid = ?
+    `,
+    [id]
+  );
+  res.json(replies);
+});
+//인스타 댓글 불러오기
+app.get("/getReplies/:id", async (req, res) => {
+  const { id } = req.params;
+
+  const [replies] = await pool.query(
+    `
+    select * from reply_table where articleid = ?
+    `,
+    [id]
+  );
+
+  if (replies.length == 0) {
+    res.status(404).json({
+      msg: "댓글이 존재하지 않습니다.",
+    });
+    return;
+  }
+
+  res.json(replies);
 });
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
