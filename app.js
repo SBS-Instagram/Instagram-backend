@@ -716,6 +716,69 @@ app.get("/isLiked", async (req, res) => {
     res.json(false);
   }
 });
+//인스타 사진정보로 유저확인
+app.get("/getUser/:id", async (req, res) => {
+  const { id } = req.params;
+
+  if (!id) {
+    res.status(404).json({
+      msg: "id Required",
+    });
+    return;
+  }
+
+  const [[userid]] = await pool.query(
+    `
+    SELECT userid from img_table where id = ?
+    `,
+    [id]
+  );
+
+  if (!userid) {
+    res.status(400).json({
+      msg: "유저가 없습니다.",
+    });
+  }
+  const [[user]] = await pool.query(
+    `
+    select * from insta where userid = ?
+    `,
+    [userid.userid]
+  );
+
+  if (!user) {
+    res.status(400).json({
+      msg: "유저가 없습니다.",
+    });
+    return;
+  }
+
+  res.json(user);
+});
+//인스타 댓글추가
+app.post("/instaReply/:id", async (req, res) => {
+  const { id, userid } = req.query;
+  const { reply } = req.body;
+
+  if (!id || !userid || !reply) {
+    res.status(404).json({
+      msg: "잘못된 접근입니다.",
+    });
+    return;
+  }
+
+  await pool.query(
+    `
+    insert into reply_table set
+    articleid = ?,
+    replyid = ?,
+    reply = ?
+    `,
+    [id, userid, reply]
+  );
+
+  res.json("답변이 생성되었습니다.");
+});
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
 });
