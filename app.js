@@ -6,6 +6,7 @@ import axios from "axios";
 import fileUpload from "express-fileupload";
 import path from "path";
 import fs from "fs";
+import e from "express";
 
 const __dirname = path.resolve();
 
@@ -849,9 +850,73 @@ app.get("/getReplies/:id", async (req, res) => {
   res.json(replies);
 });
 //인스타 화살표 누르면 다음게시글
+app.get("/nextImage", async (req, res) => {
+  const { id, userid } = req.query;
+  let count = 1;
+  if (!id) {
+    req.status(404).json({
+      msg: " id Required",
+    });
+    return;
+  }
+  const [[image]] = await pool.query(
+    `
+    select * from img_table where id = ?
+    `,
+    [id]
+  );
 
+  const [[nextimage]] = await pool.query(
+    `
+    select * from img_table where id = ? - 1
+    `,
+    [id]
+  );
+  count++;
+
+  if (nextimage.userid === image.userid) {
+    res.json(nextimage);
+    return;
+  }
+
+  res.json({
+    msg: "실패",
+  });
+});
 //인스타 화살표 누르면 이전게시글
+app.get("/prevImage", async (req, res) => {
+  const { id, userid } = req.query;
+  let count = 1;
+  if (!id) {
+    req.status(404).json({
+      msg: " id Required",
+    });
+    return;
+  }
+  const [[image]] = await pool.query(
+    `
+    select * from img_table where id = ?
+    `,
+    [id]
+  );
 
+  const [[prevImage]] = await pool.query(
+    `
+    select * from img_table where id = ? + 1
+    `,
+    [id]
+  );
+  count++;
+
+  if (prevImage.userid === image.userid) {
+    res.json(prevImage);
+    return;
+  }
+
+  res.json({
+    msg: "실패",
+  });
+});
 //인스타 select * from img_table where userid = ? order by id_asc /desc
 //이후 가장 첫, 마지막 이라면 <-  -> 화살표 안나오게 or 비활성화
 app.listen(port, () => {
