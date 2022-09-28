@@ -424,6 +424,14 @@ app.post("/profileImage/:userid", async (req, res) => {
       [imgSrc, userid]
     );
 
+    await pool.query(
+      `
+      update reply_table set replyuserImgSrc = ?
+      where replyid = ?
+      `,
+      [imgSrc, userid]
+    );
+
     res.send(imgSrc);
   });
 });
@@ -840,6 +848,12 @@ app.get("/getReplies/:id", async (req, res) => {
 
   res.json(replies);
 });
+//인스타 화살표 누르면 다음게시글
+
+//인스타 화살표 누르면 이전게시글
+
+//인스타 select * from img_table where userid = ? order by id_asc /desc
+//이후 가장 첫, 마지막 이라면 <-  -> 화살표 안나오게 or 비활성화
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
 });
