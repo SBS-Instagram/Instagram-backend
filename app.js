@@ -841,13 +841,10 @@ app.get("/getReplies/:id", async (req, res) => {
   );
 
   if (replies.length == 0) {
-    res.status(404).json({
-      msg: "댓글이 존재하지 않습니다.",
-    });
-    return;
+    res.json(false);
+  } else {
+    res.json(replies);
   }
-
-  res.json(replies);
 });
 //인스타 화살표 누르면 다음게시글
 app.get("/nextImage", async (req, res) => {
