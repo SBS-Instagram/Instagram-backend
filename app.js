@@ -852,70 +852,68 @@ app.get("/getReplies/:id", async (req, res) => {
 //인스타 화살표 누르면 다음게시글
 app.get("/nextImage", async (req, res) => {
   const { id, userid } = req.query;
-  let count = 1;
   if (!id) {
     req.status(404).json({
       msg: " id Required",
     });
     return;
   }
-  const [[image]] = await pool.query(
+
+  const [images] = await pool.query(
     `
-    select * from img_table where id = ?
+    select * from img_table where userid = ?
     `,
-    [id]
+    [userid]
   );
 
-  const [[nextimage]] = await pool.query(
+  const [[currentImage]] = await pool.query(
     `
-    select * from img_table where id = ? - 1
+    select * from img_table where userid = ? and id = ?
     `,
-    [id]
+    [userid, id]
   );
-  count++;
 
-  if (nextimage.userid === image.userid) {
-    res.json(nextimage);
-    return;
-  }
-
-  res.json({
-    msg: "실패",
+  const [nextImage] = images.reverse().filter((image) => {
+    return currentImage.id > image.id ? true : false;
   });
+  if (nextImage != undefined) {
+    res.json(nextImage);
+  } else {
+    res.json(false);
+  }
 });
 //인스타 화살표 누르면 이전게시글
 app.get("/prevImage", async (req, res) => {
   const { id, userid } = req.query;
-  let count = 1;
   if (!id) {
     req.status(404).json({
       msg: " id Required",
     });
     return;
   }
-  const [[image]] = await pool.query(
+
+  const [images] = await pool.query(
     `
-    select * from img_table where id = ?
+    select * from img_table where userid = ?
     `,
-    [id]
+    [userid]
   );
 
-  const [[prevImage]] = await pool.query(
+  const [[currentImage]] = await pool.query(
     `
-    select * from img_table where id = ? + 1
+    select * from img_table where userid = ? and id = ?
     `,
-    [id]
+    [userid, id]
   );
-  count++;
 
-  if (prevImage.userid === image.userid) {
-    res.json(prevImage);
-    return;
-  }
-
-  res.json({
-    msg: "실패",
+  const [prevImage] = images.filter((image) => {
+    return currentImage.id < image.id ? true : false;
   });
+  if (prevImage != undefined) {
+    res.json(prevImage);
+  } else {
+    res.json(false);
+  }
 });
 //인스타 select * from img_table where userid = ? order by id_asc /desc
 //이후 가장 첫, 마지막 이라면 <-  -> 화살표 안나오게 or 비활성화
