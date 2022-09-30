@@ -449,10 +449,9 @@ app.get("/instaSearch/:searchValue", async (req, res) => {
     });
     return;
   }
-  if (!searched.length) {
-    res.status(400).json({
-      msg: "검색 결과 없음.",
-    });
+
+  if (searched == "") {
+    res.json(false);
     return;
   }
 
@@ -912,8 +911,7 @@ app.get("/prevImage", async (req, res) => {
     res.json(false);
   }
 });
-//인스타 select * from img_table where userid = ? order by id_asc /desc
-//이후 가장 첫, 마지막 이라면 <-  -> 화살표 안나오게 or 비활성화
+
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
 });
