@@ -318,6 +318,7 @@ app.post("/loginMember", async (req, res) => {
       authenticated: false,
       msg: "일치하는 회원이 없습니다.",
     });
+
     return;
   }
   if (user.password != password) {
@@ -325,6 +326,7 @@ app.post("/loginMember", async (req, res) => {
       authenticated: false,
       msg: "비밀번호가 일치하지 않습니다.",
     });
+
     return;
   } else {
     res.status(200).json({
@@ -389,6 +391,48 @@ app.post("/upload/:userid", async (req, res) => {
 
     res.send(imgSrc);
   });
+});
+//인스타 게시글 사진수정
+app.post("/updatePhoto/:userid", async (req, res) => {
+  const { userid } = req.params;
+  const { text } = req.body;
+  let uploadFile = req.files.img;
+  const fileName = req.files.img.name;
+  const name = Date.now() + "." + fileName;
+
+  uploadFile.mv(`${__dirname}/public/files/${name}`, async (err) => {
+    if (err) {
+      return res.status(500).send(err);
+    }
+
+    const imgSrc = `http://localhost:3002/files/${name}`;
+
+    await pool.query(
+      `
+      update img_table set
+      imgSrc = ?,
+      body = ?
+      where userid = ?
+      `,
+      [imgSrc, text, userid]
+    );
+    res.send(imgSrc);
+  });
+});
+//인스타 게시글만 수정
+app.post("/updateText/:userid", async (req, res) => {
+  const { userid } = req.params;
+  const { body } = req.body;
+
+  await pool.query(
+    `
+    update img_table set
+    body = ?
+    where userid = ?
+    `,
+    [body, userid]
+  );
+  res.json({ msg: "수정 완료" });
 });
 //DB 이미지 조회
 app.get("/getImage/:id", async (req, res) => {
