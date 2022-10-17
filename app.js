@@ -955,6 +955,21 @@ app.get("/prevImage", async (req, res) => {
     res.json(false);
   }
 });
+//인스타 팔로우 유저 받아오기
+app.get("/getFollowMember/:id", async (req, res) => {
+  const { id } = req.params;
+  const [users] = "";
+  const [followUsers] = await pool.query(
+    `
+  select followedId from follow_table where followId = ?
+  `,
+    [id]
+  );
+  // followUsers.forEach((element) => element);
+  // console.log(followUsers);
+  res.json(followUsers);
+});
+//인스타 팔로우 게시글 받아오는것 추가해야함
 
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
