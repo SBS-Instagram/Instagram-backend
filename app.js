@@ -463,7 +463,7 @@ app.post("/profileImage/:userid", async (req, res) => {
 
     await pool.query(
       `
-      UPDATE insta SET imgSrc = ?
+      UPDATE insta SET userimgSrc = ?
       WHERE userid = ?
       `,
       [imgSrc, userid]
@@ -694,7 +694,7 @@ app.delete("/delete", async (req, res) => {
 });
 // 인스타 좋아요
 app.post("/like", async (req, res) => {
-  const { id, userid, imgSrc } = req.query;
+  const { id, userid, userimgSrc } = req.query;
 
   const [isLiked] = await pool.query(
     `
@@ -711,10 +711,10 @@ app.post("/like", async (req, res) => {
       insert into like_table set
       id = ?,
       likeid = ?,
-      imgSrc = ?,
+      userimgSrc = ?,
       liked = 1
       `,
-      [id, userid, imgSrc]
+      [id, userid, userimgSrc]
     );
 
     await pool.query(
@@ -854,7 +854,7 @@ app.post("/instaReply", async (req, res) => {
     replyusername = ?,
     replyuserImgSrc = ?
     `,
-    [id, userid, reply, user.username, user.imgSrc]
+    [id, userid, reply, user.username, user.userimgSrc]
   );
 
   await pool.query(
@@ -970,10 +970,36 @@ app.get("/getFollowMember/:id", async (req, res) => {
     [id]
   );
 
+  if (users.length <= 0) {
+    res.json(false);
+    return;
+  }
   res.json(users);
 });
 //인스타 팔로우 게시글 받아오는것 추가해야함
+app.get("/getFollowArticle/:id", async (req, res) => {
+  const { id } = req.params;
 
+  const [users] = await pool.query(
+    `
+  SELECT *
+  FROM img_table a
+  inner join follow_table b
+  on a.userid = b.followedId
+  inner join insta c
+  on b.followedId = c.userid
+  where b.followId = ?
+  `,
+    [id]
+  );
+
+  if (users.length <= 0) {
+    res.json(false);
+    return;
+  }
+
+  res.json(users);
+});
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
 });
