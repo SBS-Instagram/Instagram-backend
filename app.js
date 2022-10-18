@@ -958,21 +958,19 @@ app.get("/prevImage", async (req, res) => {
 //인스타 팔로우 유저 받아오기
 app.get("/getFollowMember/:id", async (req, res) => {
   const { id } = req.params;
-  const [followUsers] = await pool.query(
+
+  const [users] = await pool.query(
     `
-  select followedId from follow_table where followId = ?
+  SELECT *
+  FROM insta a
+  INNER JOIN follow_table b 
+  ON a.userid = b.followedId
+  WHERE b.followId = ?
   `,
     [id]
   );
 
-  // followUsers.forEach((element) => element);
-  const returnArr = [];
-  followUsers.forEach((element) => {
-    returnArr.push(element.followedId);
-  });
-  console.log(returnArr);
-
-  res.json(returnArr);
+  res.json(users);
 });
 //인스타 팔로우 게시글 받아오는것 추가해야함
 
