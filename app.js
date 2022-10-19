@@ -982,13 +982,17 @@ app.get("/getFollowArticle/:id", async (req, res) => {
 
   const [users] = await pool.query(
     `
-  SELECT *
+    SELECT *
   FROM img_table a
   inner join follow_table b
   on a.userid = b.followedId
   inner join insta c
   on b.followedId = c.userid
+  inner join reply_table d
+  on d.articleid = a.id
   where b.followId = ?
+  group by a.id
+
   `,
     [id]
   );
