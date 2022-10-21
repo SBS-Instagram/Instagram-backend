@@ -389,6 +389,21 @@ app.post("/upload/:userid", async (req, res) => {
       [userid]
     );
 
+    const [[imgs]] = await pool.query(
+      `
+      select id from img_table order by id desc;
+      `
+    );
+
+    await pool.query(
+      `
+    insert into like_table set
+    articleid = ?,
+    liked = 0
+    `,
+      [imgs.id]
+    );
+
     res.send(imgSrc);
   });
 });
@@ -666,6 +681,21 @@ app.delete("/delete", async (req, res) => {
 
   await pool.query(
     `
+    delete from reply_table
+    where articleid = ?
+    `,
+    [id]
+  );
+
+  await pool.query(
+    `
+  delete from like_table
+  where articleid = ?
+  `,
+    [id]
+  );
+  await pool.query(
+    `
     delete 
     from img_table
     where id = ?
@@ -699,7 +729,7 @@ app.post("/like", async (req, res) => {
   const [isLiked] = await pool.query(
     `
   SELECT * FROM like_table WHERE
-   id = ? 
+   articleid = ? 
    AND likeid = ?
   `,
     [id, userid]
@@ -708,13 +738,13 @@ app.post("/like", async (req, res) => {
   if (isLiked == "") {
     await pool.query(
       `
-      insert into like_table set
-      id = ?,
+      update like_table set
       likeid = ?,
-      userimgSrc = ?,
+      likeuserimgSrc = ?,
       liked = 1
+      where articleid = ?
       `,
-      [id, userid, userimgSrc]
+      [userid, userimgSrc, id]
     );
 
     await pool.query(
@@ -741,8 +771,11 @@ app.post("/like", async (req, res) => {
 
     await pool.query(
       `
-      DELETE FROM like_table
-       WHERE id = ? AND 
+      update like_table set
+      likeid = "",
+      likeuserimgSrc="",
+      liked = 0
+       WHERE articleid = ? AND 
        likeid = ?
       `,
       [id, userid]
@@ -775,7 +808,7 @@ app.get("/isLiked", async (req, res) => {
     `
   SELECT * FROM like_table WHERE
    likeid = ? 
-   AND id = ?
+   AND articleid = ?
   `,
     [userid, id]
   );
@@ -976,10 +1009,19 @@ app.get("/getFollowMember/:id", async (req, res) => {
   }
   res.json(users);
 });
-//인스타 팔로우 게시글 받아오는것 추가해야함
+//인스타 팔로우 게시글 받아오는것
 app.get("/getFollowArticle/:id", async (req, res) => {
   const { id } = req.params;
-
+  // SELECT *
+  // FROM img_table a
+  // inner join follow_table b
+  // on a.userid = b.followedId
+  // inner join insta c
+  // on b.followedId = c.userid
+  // inner join reply_table d
+  // on d.articleid = a.id
+  // where b.followId = ?
+  // group by a.id
   const [users] = await pool.query(
     `
     SELECT *
@@ -988,22 +1030,19 @@ app.get("/getFollowArticle/:id", async (req, res) => {
   on a.userid = b.followedId
   inner join insta c
   on b.followedId = c.userid
-  inner join reply_table d
+  inner join like_table d
   on d.articleid = a.id
   where b.followId = ?
-  group by a.id
 
+  group by a.id
   `,
     [id]
   );
 
-  if (users.length <= 0) {
-    res.json(false);
-    return;
-  }
-
   res.json(users);
+  return;
 });
+
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
 });
