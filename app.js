@@ -1042,7 +1042,94 @@ app.get("/getFollowArticle/:id", async (req, res) => {
   res.json(users);
   return;
 });
+//게시글 저장기능
+app.get("/articleSave", async (req, res) => {
+  const { userid, articleid } = req.query;
 
+  const [isSaved] = await pool.query(
+    `
+    select * from save_table
+    where saveid = ? and
+    articleid = ?
+  `,
+    [userid, articleid]
+  );
+
+  if (isSaved == "") {
+    await pool.query(
+      `
+    update img_table set saved = 1 where id = ?
+    `,
+      [articleid]
+    );
+
+    await pool.query(
+      `
+    insert into save_table set 
+    articleid = ?,
+    saveid = ?
+    `,
+      [articleid, userid]
+    );
+
+    res.json(true);
+  } else {
+    await pool.query(
+      `
+    update img_table set saved = 0 where id = ?
+    `,
+      [articleid]
+    );
+
+    await pool.query(
+      `
+    delete from save_table where
+    articleid = ? and
+    saveid = ?
+    `,
+      [articleid, userid]
+    );
+
+    res.json(false);
+  }
+});
+//프로필 수정 업데이트
+app.patch("/updateProfile/:userid", async (req, res) => {
+  const { userid } = req.params;
+  const { usename, introduce } = req.body;
+
+  const [userRow] = await pool.query(
+    `
+    select *
+    from insta
+    where userid = ?
+    `,
+    [userid]
+  );
+  if (userRow == undefined) {
+    res.status(404).json({
+      msg: "not found",
+    });
+  }
+  const [rs] = await pool.query(
+    `
+    update insta
+    set usename = ?,
+    introduce = ?
+    where userid = ?
+    `,
+    [usename, introduce, userid]
+  );
+  const [[updatedUsers]] = await pool.query(
+    `
+    select *
+    from insta
+    where userid = ?
+    `,
+    [userid]
+  );
+  res.json(updatedUsers);
+});
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
 });
