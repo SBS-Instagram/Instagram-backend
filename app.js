@@ -1130,6 +1130,45 @@ app.patch("/updateProfile/:userid", async (req, res) => {
   );
   res.json(updatedUsers);
 });
+//유저전체
+app.get("/getAllMember/:id", async (req, res) => {
+  const { id } = req.params;
+  const [users] = await pool.query(`
+   select * from insta
+  `);
+
+  function shuffle(array) {
+    array.sort(() => Math.random() - 0.5);
+  }
+  shuffle(users);
+  const recommendUsers = [];
+  if (users.length > 6) {
+    for (let i = 0; i < 6; i++) {
+      recommendUsers[i] = users[i];
+    }
+  } else {
+    for (let i = 0; i < users.length; i++) {
+      recommendUsers[i] = users[i];
+    }
+  }
+  const [followusers] = await pool.query(
+    `
+    select followedId from follow_table where followId = ?
+  `,
+    [id]
+  );
+
+  const deleteMe = recommendUsers.filter((user) => {
+    return user.userid != id;
+  });
+
+  const deleteFollow = deleteMe.filter((user) => {
+    return (
+      user.userid != followusers.map((followuser) => followuser.followedId)
+    );
+  });
+  res.json(deleteFollow);
+});
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
 });
